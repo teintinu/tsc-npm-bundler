@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const tsplugin = require('rollup-plugin-typescript2');
 const rollup = require('rollup');
 const program = require('commander');
