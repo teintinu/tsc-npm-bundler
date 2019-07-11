@@ -7,9 +7,9 @@
     "chokidar": "^3.0.2",
     "commander": "^2.20.0",
     "json5": "^2.1.0",
+    "ora": "^3.4.0",
     "rollup": "^1.16.7",
     "rollup-plugin-typescript2": "^0.21.2",
-    "shelljs": "^0.8.3",
     "typescript": "^3.5.3"
   },
   "devDependencies": {},

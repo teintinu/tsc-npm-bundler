@@ -6,7 +6,7 @@ const program = require('commander');
 const chokidar = require('chokidar');
 const fs = require('fs');
 const JSON5 = require('json5');
-const shell = require('shelljs');
+const ora = require('ora');
 
 const inputOptions = {
   input: "src/index.ts",
@@ -37,27 +37,44 @@ program
   .option('-o, --only [options]', Object.keys(configurator))
   .option('-e, --except [options]', Object.keys(configurator))
   .action(function (cmd) {
-    if (cmd.only) cmd.only.split(',').forEach(config)
+    let failed = false
+    let cfgExec
+    if (cmd.only) cfgExec = cmd.only.split(',')
     else if (cmd.except) {
       const exceptOptions = cmd.except.split(',')
       exceptOptions.forEach((n) => {
         if (!configurator[n]) {
-          console.log("invalid configuration option " + n)
-          process.exit(1);
+          const spinner = ora("configuring " + n).start();
+          spinner.fail("invalid configuration option " + n)
+          failed = true
         }
       })
-      Object.keys(configurator).forEach((n) => {
-        if (exceptOptions.indexOf(n) === -1) config(n)
-      })
-    } else Object.keys(configurator).forEach(config)
-    function config(n) {
+      cfgExec = Object.keys(configurator).filter((n) => exceptOptions.indexOf(n) === -1)
+    } else cfgExec = Object.keys(configurator)
+    const count = cfgExec.length
+    execNext()
+    async function execNext() {
+      if (failed) return
+      const n = cfgExec.shift()
+      const idx = count - cfgExec.length
+      const spinner = ora()
+      spinner.prefixText = "configuring " + idx + "/" + count + ": " + n
+      spinner.start();
       const fn = configurator[n]
       if (fn) {
-        console.log("configuring " + n)
-        fn()
+        const r = await fn(cmd, spinner)
+        if (r !== "ok") {
+          spinner.fail("error configuring " + n + " " + r)
+          failed = true
+        }
+        else {
+          spinner.text = ''
+          spinner.succeed()
+        }
+        if (cfgExec.length && !failed) execNext()
       } else {
-        console.log("invalid configuration option " + n)
-        process.exit(1);
+        spinner.fail("invalid configuration option " + n)
+        failed = true
       }
     }
   })
@@ -67,9 +84,16 @@ program.parse(process.argv)
 if (!process.argv.slice(2).length) program.outputHelp();
 
 async function build() {
-  const bundle = await rollup.rollup(inputOptions);
-  await bundle.generate(outputOptions);
-  await bundle.write(outputOptions);
+  const spinner = ora("building").start();
+  try {
+    const bundle = await rollup.rollup(inputOptions);
+    await bundle.generate(outputOptions);
+    await bundle.write(outputOptions);
+  } catch (e) {
+    spinner.fail(e.message)
+  } finally {
+    spinner.succeed('built')
+  }
 }
 
 async function watch() {
@@ -82,10 +106,13 @@ async function watch() {
       exclude: ['node_modules/**', '*.test.ts*']
     },
   };
+  let spinner
   const watcher = await rollup.watch(watchOptions);
   watcher.on('event', event => {
-    if (event.code === "BUNDLE_START") console.log('building')
-    if (event.code === "END") console.log('built')
+    if (event.code === "BUNDLE_START") spinner = ora("building").start();
+    if (event.code === "END") if (spinner) spinner.succeed('built')
+    if (event.code === "ERROR") if (spinner) spinner.fail(event.error.message)
+    if (event.code === "FATAL") if (spinner) spinner.fail(event.error.message)
   });
 
   // stop watching
@@ -94,7 +121,7 @@ async function watch() {
 
 function getConfigurator() {
   return {
-    package() {
+    async package() {
       const json = fs.existsSync('package.json') ?
         JSON5.parse(fs.readFileSync('package.json', { encoding: 'utf8' })) : {}
 
@@ -106,7 +133,7 @@ function getConfigurator() {
       json.scripts.testWithCoverage = 'jest --coverage'
       json.scripts.lint = 'tslint -p .'
       json.scripts.lintFix = 'tslint -p . --fix'
-      json.scripts.prepublish = 'npm test && npm run build'
+      if (!json.scripts.prepublish) json.scripts.prepublish = 'npm run testWithCoverage && npm run build'
       json.jest = json.jest || {}
       json.jest.preset = 'ts-jest'
       json.jest.testEnvironment = 'node'
@@ -119,12 +146,14 @@ function getConfigurator() {
 
       const n = JSON.stringify(json, null, 2)
       fs.writeFileSync('package.json', n, { encoding: 'utf8' })
+      return "ok"
     },
-    dependencies() {
-      shell.exec("npm install --save tslib")
-      shell.exec("npm install --save-dev typescript jest ts-jest @types/jest tslint tslint-config-standard")
+    async dependencies(cmd, spinner) {
+      await execShellCommand(spinner, "npm install --save tslib", { silent: true })
+      await execShellCommand(spinner, "npm install --save-dev typescript jest ts-jest @types/jest tslint tslint-config-standard", { silent: true })
+      return "ok"
     },
-    tsconfig() {
+    async tsconfig() {
       const json = fs.existsSync('tsconfig.json') ?
         JSON5.parse(fs.readFileSync('tsconfig.json', { encoding: 'utf8' })) : {}
 
@@ -151,8 +180,9 @@ function getConfigurator() {
 
       const n = JSON.stringify(json, null, 2)
       fs.writeFileSync('tsconfig.json', n, { encoding: 'utf8' })
+      return "ok"
     },
-    tslint() {
+    async  tslint() {
       const json = fs.existsSync('tslint.json') ?
         JSON5.parse(fs.readFileSync('tslint.json', { encoding: 'utf8' })) : {}
 
@@ -163,8 +193,9 @@ function getConfigurator() {
 
       const n = JSON.stringify(json, null, 2)
       fs.writeFileSync('tslint.json', n, { encoding: 'utf8' })
+      return "ok"
     },
-    gitignore() {
+    async gitignore() {
       const lines = fs.existsSync('.gitignore') ?
         fs.readFileSync('.gitignore', { encoding: 'utf8' })
           .replace(/\r\n/g, '\n')
@@ -173,8 +204,9 @@ function getConfigurator() {
       if (lines.indexOf('bin/') === -1) lines.push('bin/')
       if (lines.indexOf('.rpt2_cache/') === -1) lines.push('.rpt2_cache/')
       fs.writeFileSync('.gitignore', lines.join('\n'), { encoding: 'utf8' })
+      return "ok"
     },
-    npmignore() {
+    async npmignore() {
       const lines = fs.existsSync('.npmignore') ?
         fs.readFileSync('.npmignore', { encoding: 'utf8' })
           .replace(/\r\n/g, '\n')
@@ -184,8 +216,9 @@ function getConfigurator() {
       if (lines.indexOf('.rpt2_cache/') === -1) lines.push('.rpt2_cache/')
       if (lines.indexOf('ts*.json') === -1) lines.push('ts*.json')
       fs.writeFileSync('.npmignore', lines.join('\n'), { encoding: 'utf8' })
+      return "ok"
     },
-    vscode() {
+    async vscode() {
       if (!fs.existsSync('.vscode')) fs.mkdirSync('.vscode')
       const json = fs.existsSync('.vscode/settings.json') ?
         JSON5.parse(fs.readFileSync('.vscode/settings.json', { encoding: 'utf8' })) : {}
@@ -196,6 +229,18 @@ function getConfigurator() {
 
       const n = JSON.stringify(json, null, 2)
       fs.writeFileSync('.vscode/settings.json', n, { encoding: 'utf8' })
+      return "ok"
     },
   }
+}
+
+function execShellCommand(spinner, cmd) {
+  spinner.text = cmd
+  const exec = require('child_process').exec;
+  return new Promise((resolve, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) reject(error)
+      else resolve(stdout ? stdout : stderr)
+    });
+  });
 }

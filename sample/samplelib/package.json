@@ -7,7 +7,8 @@
     "lint": "tslint -p .",
     "build": "tsc-npm-builder build",
     "testWithCoverage": "jest --coverage",
-    "lintFix": "tslint -p . --fix"
+    "lintFix": "tslint -p . --fix",
+    "prepublish": "npm run lint"
   },
   "author": "",
   "license": "ISC",
