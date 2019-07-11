@@ -1,0 +1,16 @@
+{
+  "name": "sampleapp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx tsc --outDir bin src/testArithmetic.ts",
+    "test": "npm run build && node bin/testArithmetic"
+  },
+  "private": true,
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "samplelib": "1.0.0"
+  }
+}
