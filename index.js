@@ -128,7 +128,7 @@ function getConfigurator() {
       json.main = "bin/bundle.js"
       json.types = "bin/index.d.ts"
       json.scripts = json.scripts || {}
-      json.scripts.build = 'tsc-npm-builder build'
+      json.scripts.build = 'tsc-npm-bundler build'
       json.scripts.test = 'jest --watch'
       json.scripts.testWithCoverage = 'jest --coverage'
       json.scripts.lint = 'tslint -p .'
