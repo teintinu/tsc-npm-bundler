@@ -2,8 +2,6 @@
   "name": "samplelib",
   "version": "1.0.0",
   "description": "",
-  "main": "bin/bundle.js",
-  "types": "bin/index.d.ts",
   "scripts": {
     "test": "jest"
   },
@@ -13,6 +11,14 @@
   "devDependencies": {
     "@types/jest": "^24.0.15",
     "jest": "^24.8.0",
-    "ts-jest": "^24.0.2"
+    "ts-jest": "^24.0.2",
+    "tslint": "^5.18.0",
+    "tslint-config-standard": "^8.0.1",
+    "typescript": "^3.5.3"
+  },
+  "main": "bin/bundle.js",
+  "types": "bin/index.d.ts",
+  "dependencies": {
+    "tslib": "^1.10.0"
   }
 }

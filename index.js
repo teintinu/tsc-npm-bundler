@@ -3,7 +3,8 @@ const rollup = require('rollup');
 const program = require('commander');
 const chokidar = require('chokidar');
 const fs = require('fs');
-const JSON5 = require('json5')
+const JSON5 = require('json5');
+const shell = require('shelljs');
 
 const inputOptions = {
     input: "src/index.ts",
@@ -20,7 +21,6 @@ const outputOptions = {
     format: 'cjs'
 };
 
-
 program
     .command('build')
     .action(build)
@@ -32,13 +32,31 @@ program
 const configurator = getConfigurator()
 program
     .command('config')
-    .option('-o, --only [option]', Object.keys(configurator))
+    .option('-o, --only [options]', Object.keys(configurator))
+    .option('-e, --except [options]', Object.keys(configurator))
     .action(function (cmd) {
-        if (cmd.only) config(cmd.only)
-        else Object.keys(configurator).forEach(config)
+        if (cmd.only) cmd.only.split(',').forEach(config)
+        else if (cmd.except) {
+            const exceptOptions = cmd.except.split(',')
+            exceptOptions.forEach((n) => {
+                if (!configurator[n]) {
+                    console.log("invalid configuration option " + n)
+                    process.exit(1);
+                }
+            })
+            Object.keys(configurator).forEach((n) => {
+                if (exceptOptions.indexOf(n) === -1) config(n)
+            })
+        } else Object.keys(configurator).forEach(config)
         function config(n) {
-            console.log("configuring " + n)
-            configurator[n]()
+            const fn = configurator[n]
+            if (fn) {
+                console.log("configuring " + n)
+                fn()
+            } else {
+                console.log("invalid configuration option " + n)
+                process.exit(1);
+            }
         }
     })
 
@@ -72,10 +90,21 @@ async function watch() {
     //watcher.close();
 }
 
-
 function getConfigurator() {
     return {
+        package() {
+            const json = fs.existsSync('package.json') ?
+                JSON5.parse(fs.readFileSync('package.json', { encoding: 'utf8' })) : {}
+
+            json.main = "bin/bundle.js"
+            json.types = "bin/index.d.ts"
+
+            const n = JSON.stringify(json, null, 2)
+            fs.writeFileSync('package.json', n, { encoding: 'utf8' })
+        },
         dependencies() {
+            shell.exec("npm install --save tslib")
+            shell.exec("npm install --save-dev typescript jest ts-jest @types/jest tslint tslint-config-standard")
         },
         tsconfig() {
             const json = fs.existsSync('tsconfig.json') ?
@@ -121,11 +150,38 @@ function getConfigurator() {
             fs.writeFileSync('tslint.json', n, { encoding: 'utf8' })
         },
         gitignore() {
+            const lines = fs.existsSync('.gitignore') ?
+                fs.readFileSync('.gitignore', { encoding: 'utf8' })
+                    .replace(/\r\n/g, '\n')
+                    .replace(/\r/g, '\n')
+                    .split('\n') : []
+            if (lines.indexOf('bin/') === -1) lines.push('bin/')
+            if (lines.indexOf('.rpt2_cache/') === -1) lines.push('.rpt2_cache/')
+            fs.writeFileSync('.gitignore', lines.join('\n'), { encoding: 'utf8' })
         },
         npmignore() {
+            const lines = fs.existsSync('.npmignore') ?
+                fs.readFileSync('.npmignore', { encoding: 'utf8' })
+                    .replace(/\r\n/g, '\n')
+                    .replace(/\r/g, '\n')
+                    .split('\n') : []
+            if (lines.indexOf('src/') === -1) lines.push('src/')
+            if (lines.indexOf('.rpt2_cache/') === -1) lines.push('.rpt2_cache/')
+            if (lines.indexOf('ts*.json') === -1) lines.push('ts*.json')
+            if (lines.indexOf('jest.config.js') === -1) lines.push('jest.config.js')
+            fs.writeFileSync('.npmignore', lines.join('\n'), { encoding: 'utf8' })
         },
         vscode() {
+            if (!fs.existsSync('.vscode')) fs.mkdirSync('.vscode')
+            const json = fs.existsSync('.vscode/package.json') ?
+                JSON5.parse(fs.readFileSync('.vscode/package.json', { encoding: 'utf8' })) : {}
+
+            json["editor.tabSize"] = 2
+            json["typescript.format.insertSpaceBeforeFunctionParenthesis"] = true
+            json["editor.detectIndentation"] = false
+
+            const n = JSON.stringify(json, null, 2)
+            fs.writeFileSync('.vscode/package.json', n, { encoding: 'utf8' })
         },
     }
 }
-
