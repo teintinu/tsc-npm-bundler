@@ -20,7 +20,7 @@
     "sampleapp:test": "cd sample/sampleapp && npm test",
     "sampleapp:build": "cd sample/sampleapp && npm link samplelib && npm run build",
     "sampleapp:all": "npm run sampleapp:test && npm run sampleapp:build",
-    "test": "npm run samplelib:all && npm run sampleapp:all",
+    "test": "npm run samplelib:all && npm run sampleapp:all"
   },
   "repository": {
     "type": "git",
