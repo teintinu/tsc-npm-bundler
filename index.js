@@ -98,6 +98,21 @@ function getConfigurator() {
 
             json.main = "bin/bundle.js"
             json.types = "bin/index.d.ts"
+            json.scripts = json.scripts || {}
+            json.scripts.build = 'tsc-npm-builder build'
+            json.scripts.test = 'jest --watch'
+            json.scripts.testWithCoverage = 'jest --coverage'
+            json.scripts.lint = 'tslint -p .'
+            json.scripts.lintFix = 'tslint -p . --fix'
+            json.jest = json.jest || {}
+            json.jest.preset = 'ts-jest'
+            json.jest.testEnvironment = 'node'
+            json.jest.coverageThreshold = json.jest.coverageThreshold || {}
+            json.jest.coverageThreshold.global = json.jest.coverageThreshold.global || {}
+            json.jest.coverageThreshold.global.branches = 100
+            json.jest.coverageThreshold.global.functions = 100
+            json.jest.coverageThreshold.global.lines = 100
+            json.jest.coverageThreshold.global.statements = 100
 
             const n = JSON.stringify(json, null, 2)
             fs.writeFileSync('package.json', n, { encoding: 'utf8' })
@@ -168,20 +183,19 @@ function getConfigurator() {
             if (lines.indexOf('src/') === -1) lines.push('src/')
             if (lines.indexOf('.rpt2_cache/') === -1) lines.push('.rpt2_cache/')
             if (lines.indexOf('ts*.json') === -1) lines.push('ts*.json')
-            if (lines.indexOf('jest.config.js') === -1) lines.push('jest.config.js')
             fs.writeFileSync('.npmignore', lines.join('\n'), { encoding: 'utf8' })
         },
         vscode() {
             if (!fs.existsSync('.vscode')) fs.mkdirSync('.vscode')
-            const json = fs.existsSync('.vscode/package.json') ?
-                JSON5.parse(fs.readFileSync('.vscode/package.json', { encoding: 'utf8' })) : {}
+            const json = fs.existsSync('.vscode/settings.json') ?
+                JSON5.parse(fs.readFileSync('.vscode/settings.json', { encoding: 'utf8' })) : {}
 
             json["editor.tabSize"] = 2
             json["typescript.format.insertSpaceBeforeFunctionParenthesis"] = true
             json["editor.detectIndentation"] = false
 
             const n = JSON.stringify(json, null, 2)
-            fs.writeFileSync('.vscode/package.json', n, { encoding: 'utf8' })
+            fs.writeFileSync('.vscode/settings.json', n, { encoding: 'utf8' })
         },
     }
 }

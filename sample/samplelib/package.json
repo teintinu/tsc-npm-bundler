@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "test": "jest"
+    "test": "jest --watch",
+    "lint": "tslint -p .",
+    "build": "tsc-npm-builder build",
+    "testWithCoverage": "jest --coverage",
+    "lintFix": "tslint -p . --fix"
   },
   "author": "",
   "license": "ISC",
@@ -20,5 +24,17 @@
   "types": "bin/index.d.ts",
   "dependencies": {
     "tslib": "^1.10.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "coverageThreshold": {
+      "global": {
+        "branches": 100,
+        "functions": 100,
+        "lines": 100,
+        "statements": 100
+      }
+    }
   }
 }

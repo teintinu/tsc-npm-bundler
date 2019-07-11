@@ -1,8 +1,8 @@
 {
-  "name": "typescript-npm-bundler",
+  "name": "tsc-npm-bundler",
   "version": "1.0.0",
   "description": "Prepare Typescript Project to NPM",
-  "main": "index.js",
+  "bin": "index.js",
   "dependencies": {
     "chokidar": "^3.0.2",
     "commander": "^2.20.0",
@@ -24,12 +24,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/thr0w/typescript-npm-bundler.git"
+    "url": "git+https://github.com/thr0w/tsc-npm-bundler.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/thr0w/typescript-npm-bundler/issues"
+    "url": "https://github.com/thr0w/tsc-npm-bundler/issues"
   },
-  "homepage": "https://github.com/thr0w/typescript-npm-bundler#readme"
+  "homepage": "https://github.com/thr0w/tsc-npm-bundler#readme"
 }
