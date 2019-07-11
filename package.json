@@ -1,6 +1,6 @@
 {
   "name": "tsc-npm-bundler",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Prepare Typescript Project to NPM",
   "bin": "index.js",
   "dependencies": {
@@ -13,8 +13,8 @@
     "typescript": "^3.5.3"
   },
   "devDependencies": {},
-  "scripts": {    
-    "samplelib:test": "cd sample/samplelib && npm test",
+  "scripts": {
+    "samplelib:test": "cd sample/samplelib && npm run testWithCoverage",
     "samplelib:build": "cd sample/samplelib && node ../../index.js build && npm link",
     "samplelib:all": "npm run samplelib:test && npm run samplelib:build",
     "sampleapp:test": "cd sample/sampleapp && npm test",

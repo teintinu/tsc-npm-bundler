@@ -11,10 +11,8 @@
     "declaration": true,
     "importHelpers": true,
     "noEmitHelpers": true,
-    "jsx": "react",
     "lib": [
-      "es2015",
-      "dom"
+      "esnext"
     ]
   },
   "exclude": [
