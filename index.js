@@ -1,37 +1,38 @@
 #!/usr/bin/env node
 
-const tsplugin = require('rollup-plugin-typescript2');
 const rollup = require('rollup');
+const rollupTS = require('rollup-plugin-typescript2');
+// const rollupNodeResolve = require('rollup-plugin-node-resolve');
+// const rollupCJS = require('rollup-plugin-commonjs');
+
 const program = require('commander');
 const chokidar = require('chokidar');
 const fs = require('fs');
 const JSON5 = require('json5');
 const ora = require('ora');
 
-const inputOptions = {
-  input: "src/index.ts",
-  plugins: [
-    tsplugin({
-      tsconfig: "tsconfig.json",
-      exclude: ["*.d.ts", "**/*.d.ts", "*.test.ts"]
-    }),
-  ]
-};
-
 const outputOptions = {
   file: 'bin/bundle.js',
   format: 'cjs'
 };
 
+// const namedExportsHelp = "namedExports for commonjs (https://stackoverflow.com/questions/50080893/rollup-error-isvalidelementtype-is-not-exported-by-node-modules-react-is-inde)\n" +
+//   'sample --named-exports "react:useState,useRef;fs:exists"'
+
 program
   .command('build')
+  .option('-e, --externals [names]', "external modules sample react,fs")
+  // .option('-n, --named-exports [names]', namedExportsHelp)
   .action(build)
 
 program
   .command('watch')
+  .option('-e, --externals [names]', "external modules sample react,fs")
+  // .option('-n, --named-exports [names]', namedExportsHelp)
   .action(watch)
 
 const configurator = getConfigurator()
+
 program
   .command('config')
   .option('-o, --only [options]', Object.keys(configurator))
@@ -83,22 +84,21 @@ program.parse(process.argv)
 
 if (!process.argv.slice(2).length) program.outputHelp();
 
-async function build() {
-  const spinner = ora("building").start();
+async function build(cmd) {
+  const spinner = ora("building ").start();
   try {
-    const bundle = await rollup.rollup(inputOptions);
+    const bundle = await rollup.rollup(getInputOptions(cmd));
     await bundle.generate(outputOptions);
     await bundle.write(outputOptions);
-  } catch (e) {
-    spinner.fail(e.message)
-  } finally {
     spinner.succeed('built')
+  } catch (e) {
+    spinner.fail(e.stack)
   }
 }
 
-async function watch() {
+async function watch(cmd) {
   const watchOptions = {
-    ...inputOptions,
+    ...getInputOptions(cmd),
     output: outputOptions,
     watch: {
       chokidar,
@@ -109,7 +109,7 @@ async function watch() {
   let spinner
   const watcher = await rollup.watch(watchOptions);
   watcher.on('event', event => {
-    if (event.code === "BUNDLE_START") spinner = ora("building").start();
+    if (event.code === "BUNDLE_START") spinner = ora("building ").start();
     if (event.code === "END") if (spinner) spinner.succeed('built')
     if (event.code === "ERROR") if (spinner) spinner.fail(event.error.message)
     if (event.code === "FATAL") if (spinner) spinner.fail(event.error.message)
@@ -243,4 +243,60 @@ function execShellCommand(spinner, cmd) {
       else resolve(stdout ? stdout : stderr)
     });
   });
+}
+
+function getInputOptions(cmd) {
+  return {
+    input: "src/index.ts",
+    external: getExternal(),
+    plugins: [
+      // rollupNodeResolve({
+      //   // modulesOnly: true,
+      //   // jail: '/src',
+      //   // only: ["tmp2-google-maps-react-hooks"]
+      //   // dedupe: [ 'react', 'react-dom' ]
+      //   // browser: true,
+      //   // mainFields: ["jsnext:main", 'module', 'main']
+      // }),
+      // rollupCJS({
+      //   include: 'node_modules/**',
+      //   namedExports: getNamedExports()
+      //   // include: /node_modules/      
+      // }),
+      rollupTS({
+        tsconfig: "tsconfig.json",
+        exclude: ["node_modules/**", "*.d.ts", "**/*.d.ts", "*.test.ts"]
+      }),
+    ]
+  }
+  function getNamedExports() {
+    const r = {
+      'react': ['useState', "useRef", "useEffect", "createElement", "cloneElement", "Children"]
+    }
+    if (cmd.namedExports) {
+      const modules = cmd.namedExports.split(';')
+      modules.forEach((m) => {
+        const [n, e] = m.split(':')
+        e.split(',').forEach((i) => {
+          r[n] = r[n] || []
+          if (r[n].indexOf(i) === -1) r[n].push(i)
+        })
+      })
+    }
+    return r
+  }
+}
+
+function getExternal() {
+  const dirs = fs.readdirSync("node_modules")
+  const externals=dirs.reduce((r, d) => {
+    const n = "node_modules/" + d + "/package.json"
+    if (fs.existsSync(n)) {
+      const p = JSON.parse(fs.readFileSync(n, "utf8"))
+      r.push(p.name)
+    }
+    return r
+  }, [])
+  // console.log(JSON.stringify(externals))
+  return externals
 }
