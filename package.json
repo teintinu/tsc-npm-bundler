@@ -4,15 +4,23 @@
   "description": "Prepare Typescript Project to NPM",
   "bin": "index.js",
   "dependencies": {
+    "@babel/core": "^7.5.4",
+    "@babel/preset-env": "^7.5.4",
     "chokidar": "^3.0.2",
     "commander": "^2.20.0",
+    "jest-cli": "^24.8.0",
     "json5": "^2.1.0",
     "ora": "^3.4.0",
+    "promise-fs": "^2.1.1",
     "rollup": "^1.16.7",
+    "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-typescript2": "^0.21.2",
     "typescript": "^3.5.3"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/jest": "^24.0.15",
+    "@types/jest-cli": "^23.6.0"
+  },
   "scripts": {
     "samplelib:test": "cd sample/samplelib && npm run testWithCoverage",
     "samplelib:build": "cd sample/samplelib && node ../../index.js build && npm link",

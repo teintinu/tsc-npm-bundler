@@ -1,0 +1,12 @@
+{
+  "extends": "../tsproject.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "samplelib": [
+        "../src"
+      ]
+    },
+    "noEmit": true
+  }
+}

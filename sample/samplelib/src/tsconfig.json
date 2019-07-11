@@ -1,0 +1,6 @@
+{
+  "extends": "../tsproject.json",
+  "compilerOptions": {
+    "baseUrl": "."
+  }
+}

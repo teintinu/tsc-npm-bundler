@@ -5,7 +5,7 @@
   "scripts": {
     "test": "jest --watch",
     "lint": "tslint -p .",
-    "build": "tsc-npm-builder build",
+    "build": "tsc-npm-bundler build",
     "testWithCoverage": "jest --coverage",
     "lintFix": "tslint -p . --fix",
     "prepublish": "npm run lint"
@@ -24,18 +24,7 @@
   "main": "bin/bundle.js",
   "types": "bin/index.d.ts",
   "dependencies": {
+    "tsconfig-paths-jest": "0.0.1",
     "tslib": "^1.10.0"
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "coverageThreshold": {
-      "global": {
-        "branches": 100,
-        "functions": 100,
-        "lines": 100,
-        "statements": 100
-      }
-    }
   }
 }

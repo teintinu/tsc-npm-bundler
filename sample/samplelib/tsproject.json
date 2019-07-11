@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "es5",
     "module": "esnext",
     "moduleResolution": "node",
     "outDir": "bin",
@@ -15,8 +15,5 @@
       "esnext"
     ]
   },
-  "exclude": [
-    "node_modules",
-    "bin"
-  ]
+  "exclude": []
 }
