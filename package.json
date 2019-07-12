@@ -3,12 +3,15 @@
   "version": "1.0.5",
   "description": "Prepare Typescript Project to NPM",
   "bin": "index.js",
+  "types": "index.d.ts",
   "dependencies": {
     "@babel/core": "^7.5.4",
     "@babel/preset-env": "^7.5.4",
+    "chalk": "^2.4.2",
     "chokidar": "^3.0.2",
     "commander": "^2.20.0",
-    "jest-cli": "^24.8.0",
+    "diff": "^4.0.1",
+    "get-stack-trace": "^2.0.1",
     "json5": "^2.1.0",
     "ora": "^3.4.0",
     "promise-fs": "^2.1.1",
@@ -18,8 +21,8 @@
     "typescript": "^3.5.3"
   },
   "devDependencies": {
-    "@types/jest": "^24.0.15",
-    "@types/jest-cli": "^23.6.0"
+    "ts-node": "^8.3.0",
+    "tsconfig-paths": "^3.8.0"
   },
   "scripts": {
     "samplelib:test": "cd sample/samplelib && npm run testWithCoverage",

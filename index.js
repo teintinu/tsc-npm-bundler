@@ -11,7 +11,11 @@ const chokidar = require('chokidar');
 const fs = require('promise-fs');
 const JSON5 = require('json5');
 const ora = require('ora');
-const jestCli = require('jest-cli');
+const tsNode = require('ts-node');
+const tsConfigPaths = require('tsconfig-paths');
+const getStackTrace = require('get-stack-trace').getStackTrace;
+const chalk = require('chalk');
+const jsdiff = require('diff');
 
 if (!fs.existsSync('package.json')) {
   const spinner = ora().start();
@@ -104,18 +108,6 @@ async function watch(cmd) {
 
 async function test(from, cmd) {
 
-  const rootDir = packageRoot
-  const jestArgs = [
-    "--no-cache",
-    "--preset", "ts-jest",
-  ]
-  const globals = {
-    'ts-jest': {
-      diagnostics: "pretty",
-      // autoMapModuleNames: true
-    },
-  }
-
   //   testEnvironment: 'node',
   //   coverageThreshold: {
   //     global: {
@@ -127,33 +119,148 @@ async function test(from, cmd) {
   //   },
   // }
 
-  const mapper = {}
-  if (from === "bin") {
-    mapper[packageName] = packageRoot + "/bin/index.js"
+  // const mapper = {}
+  // if (from === "bin") {
+  //   mapper[packageName] = packageRoot + "/bin/index.js"
+  // }
+  // else if (from === "src") {
+  //   mapper[packageName] = packageRoot + "/src/index.ts"
+  // }
+  // else {
+  //   console.log("you can run tests from src or from bin")
+  //   return
+  // }
+
+  // jestArgs.push(
+  //   "--module-name-mapper", JSON.stringify(mapper)
+  // )
+
+  // // console.dir(jestConfig)
+
+  // jestArgs.push('--globals', JSON.stringify(globals))
+
+  // console.log("jest " + jestArgs.map((a) => "'" + a + "'").join(" "))
+
+  // // npx ts-node --project tests/tsconfig.json -r chai/register-expect -r tsconfig-paths/register node_modules/mocha/bin/_mocha tests/add.test.ts
+
+  // const r = await jestCli.run(jestArgs);
+
+  // console.dir(r)
+
+  const cleanup = []
+  let level = []
+  let test
+  const tests = []
+  const fails = []
+  const spinner = ora("compiling for tests").start();
+  try {
+    global.describe = function (name, fn) {
+      const oldlevel = level
+      level.push(name)
+      fn()
+      level = oldlevel
+    }
+    global.it = function (name, fn, tm) {
+      add(name, fn, tm, getStackTrace())
+    }
+    global.expect = function (a) {
+      return {
+        toBe(e) {
+          if (a !== e) raiseDiff(a, e)
+        }
+      }
+    }
+    const testTsConfig = packageRoot + '/tests/tsconfig.json'
+    tsNode.register({
+      project: testTsConfig,
+    })
+    const tsConfig = require(testTsConfig)
+    cleanup.push(tsConfigPaths.register({
+      baseUrl: packageRoot + "/tests",
+      paths: tsConfig.compilerOptions.paths
+    }));
+    requiredFiles()
+    await runTests()
+    await showFailures()
+    if (fails.length) spinner.fail(fails.length + " test(s) failed")
+    else spinner.succeed("Tests passed")
+  } catch (e) {
+    spinner.fail("Tests failed")
+    console.log(e)
+  } finally {
+    cleanup.forEach(function (fn) {
+      try {
+        fn()
+      } catch (e) { }
+    })
   }
-  else if (from === "src") {
-    mapper[packageName] = packageRoot + "/src/index.ts"
+  function add(name, fn, tm, stack) {
+    test = { level, name, fn, tm, stack }
+    tests.push(test)
+    return test
   }
-  else {
-    console.log("you can run tests from src or from bin")
-    return
+  function requiredFiles() {
+    require(packageRoot + '/tests/add.test.ts')
+  }
+  async function runTests() {
+    for (const t of tests) {
+      test = t
+      await runTest(test)
+    }
+  }
+  async function runTest(test, idx) {
+    spinner.text = "testing " + (idx + 1) + "/" + tests.length + ": " + test.level.concat(test.name).join("/")
+    try {
+      const p = test.fn()
+      if (p) await p
+    }
+    catch (e) {
+      if (!test.failed) {
+        fails.push({
+          tests,
+          async show() {
+            console.log(e.message)
+          }
+        })
+        test.failed = true
+      }
+    }
   }
 
-  jestArgs.push(
-    "--module-name-mapper", JSON.stringify(mapper)
-  )
+  async function showFailures() {
+    for (const f of fails) {
+      await f.show()
+    }
+  }
 
-  // console.dir(jestConfig)
+  function raiseDiff(a, e) {
+    console.log('')
+    fails.push({
+      test,
+      async show() {
+        const s = (await test.stack)[1]
+        console.log(s.fileName + ":" + s.lineNumber)
+        const fa = formatValue(a)
+        const fe = formatValue(e)
+        process.stderr.write(chalk.red("actual  : " + fa) + '\n')
+        process.stderr.write(chalk.green("expected: " + fe) + '\n')
+        process.stderr.write("diff: ")
+        const diff = jsdiff.diffChars(fa, fe)
+        diff.forEach(function (part) {
+          var color = part.added ? 'green' :
+            part.removed ? 'red' : 'grey';
+          process.stderr.write(chalk[color](part.value))
+        });
+        console.log('')
+      }
+    })
+    test.failed = true
+    throw new Error("diff")
+  }
 
-  jestArgs.push('--globals', JSON.stringify(globals))
-
-  console.log("jest " + jestArgs.map((a) => "'" + a + "'").join(" "))
-
-  // npx ts-node --project tests/tsconfig.json -r chai/register-expect -r tsconfig-paths/register node_modules/mocha/bin/_mocha tests/add.test.ts
-
-  const r = await jestCli.run(jestArgs);
-
-  console.dir(r)
+  function formatValue(v) {
+    return [v].join('')
+  }
 }
 
 async function config(cmd) {

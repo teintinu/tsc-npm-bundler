@@ -2,12 +2,16 @@
   "extends": "../tsproject.json",
   "compilerOptions": {
     "module": "commonjs",
+    "inlineSourceMap": true,
     "baseUrl": ".",
     "paths": {
       "samplelib": [
         "../src"
       ]
     },
+    "typeRoots": [
+      "../../../.."
+    ],
     "noEmit": true
   }
 }
