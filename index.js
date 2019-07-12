@@ -394,12 +394,11 @@ function getConfigurator() {
       json.types = "bin/index.d.ts"
       json.scripts = json.scripts || {}
       json.scripts.build = 'tsc-npm-bundler build'
-      json.scripts.test = 'jest --watch'
-      json.scripts.testWithCoverage = 'jest --coverage'
+      json.scripts.test = 'tsc-npm-bundler test src'
+      json.scripts.testWithCoverage = 'tsc-npm-bundler build src -c'
       json.scripts.lint = 'tslint -p .'
       json.scripts.lintFix = 'tslint -p . --fix'
       if (!json.scripts.prepublish) json.scripts.prepublish = 'npm run testWithCoverage && npm run build'
-      delete json.jest
 
       const n = JSON.stringify(json, null, 2)
       await fs.writeFile('package.json', n, { encoding: 'utf8' })
@@ -407,7 +406,7 @@ function getConfigurator() {
     },
     async dependencies(cmd, spinner) {
       await execShellCommand(spinner, "npm install --save tslib", { silent: true })
-      await execShellCommand(spinner, "npm install --save-dev typescript jest ts-jest @types/jest tslint tslint-config-standard", { silent: true })
+      await execShellCommand(spinner, "npm install --save-dev typescript tsc-npm-bundler source-map-support ts-node @istanbuljs/nyc-config-typescript tslint tslint-config-standard", { silent: true })
       return "ok"
     },
     async tsconfig() {

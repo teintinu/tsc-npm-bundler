@@ -1,6 +1,6 @@
 {
   "name": "tsc-npm-bundler",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "Prepare Typescript Project to NPM",
   "bin": "index.js",
   "types": "index.d.ts",
