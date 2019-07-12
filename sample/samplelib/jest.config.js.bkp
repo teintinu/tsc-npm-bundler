@@ -12,7 +12,7 @@ console.dir(moduleNameMapper)
 module.exports = {
   preset: "ts-jest",
   // roots: ["<rootDir>/src/", "<rootDir>/tests/"],
-  moduleNameMapper: moduleNameMapper
+  // moduleNameMapper: moduleNameMapper
   // {
   //   samplelib: "/home/work/hoda5/tsc-npm-bundler/sample/samplelib/src"
   // }

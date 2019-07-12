@@ -149,6 +149,8 @@ async function test(from, cmd) {
 
   console.log("jest " + jestArgs.map((a) => "'" + a + "'").join(" "))
 
+  // npx ts-node --project tests/tsconfig.json -r chai/register-expect -r tsconfig-paths/register node_modules/mocha/bin/_mocha tests/add.test.ts
+
   const r = await jestCli.run(jestArgs);
 
   console.dir(r)

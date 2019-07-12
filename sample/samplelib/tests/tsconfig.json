@@ -1,6 +1,7 @@
 {
   "extends": "../tsproject.json",
   "compilerOptions": {
+    "module": "commonjs",
     "baseUrl": ".",
     "paths": {
       "samplelib": [
