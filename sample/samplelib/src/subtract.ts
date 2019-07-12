@@ -1,5 +1,5 @@
 import { arithmetic } from './arithmetic'
 
-export function subtract (arr: number[]) {
+export async function subtract (arr: number[]) {
   return arithmetic(arr, (p, a) => p - a)
 }

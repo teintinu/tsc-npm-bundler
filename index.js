@@ -2,7 +2,9 @@
 
 const rollup = require('rollup');
 const rollupTS = require('rollup-plugin-typescript2');
-const babel = require('rollup-plugin-babel');
+// const babelTS = require('rollup-plugin-babel');
+// const prepackTS = require('rollup-plugin-prepack')
+const uglifyTS= require("rollup-plugin-uglify").uglify;
 // const rollupNodeResolve = require('rollup-plugin-node-resolve');
 // const rollupCJS = require('rollup-plugin-commonjs');
 
@@ -526,11 +528,13 @@ async function getInputOptions(cmd) {
         tsconfig: "src/tsconfig.json",
         exclude: ["node_modules/**", "*.d.ts", "**/*.d.ts", "*.test.ts"]
       }),
-      babel({
-        babelrc: false,
-        presets: [['env']],
-        exclude: 'node_modules/**'
-      }),
+      // babelTS({
+      //   babelrc: false,
+      //   presets: [['env']],
+      //   exclude: 'node_modules/**'
+      // }),
+      uglifyTS()
+      // prepackTS()
     ]
   }
   // console.log(JSON.stringify(input))
