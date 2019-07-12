@@ -2,7 +2,6 @@
   "extends": "../tsproject.json",
   "compilerOptions": {
     "module": "commonjs",
-    "inlineSourceMap": true,
     "baseUrl": ".",
     "paths": {
       "samplelib": [
@@ -10,7 +9,7 @@
       ]
     },
     "typeRoots": [
-      "../../../.."
+      "/home/work/hoda5/tsc-npm-bundler/types"
     ],
     "noEmit": true
   }

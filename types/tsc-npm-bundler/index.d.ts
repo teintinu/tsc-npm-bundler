@@ -2,6 +2,7 @@ declare const describe: Describe
 declare const it: It
 declare const expect: Expect
 
+type ProvidesCallback = () => void | Promise<void>
 /**
  * Creates a test closure
  */
@@ -72,6 +73,9 @@ interface It {
    */
   each: Each;
 }
+
+type FunctionLike = Function
+type EmptyFunction = Function
 
 interface Describe {
   // tslint:disable-next-line ban-types
@@ -172,11 +176,11 @@ interface Expect {
   /**
    * You can use `expect.extend` to add your own matchers to Jest.
    */
-  extend (obj: ExpectExtendMap): void;
+  // extend (obj: ExpectExtendMap): void;
   /**
    * Adds a module to format application-specific data structures for serialization.
    */
-  addSnapshotSerializer (serializer: SnapshotSerializerPlugin): void;
+  // addSnapshotSerializer (serializer: SnapshotSerializerPlugin): void;
   /**
    * Matches any object that recursively matches the provided keys.
    * This is often handy in conjunction with other asymmetric matchers.
@@ -191,7 +195,7 @@ interface Expect {
    */
   stringContaining (str: string): any;
 
-  not: InverseAsymmetricMatchers;
+  // not: InverseAsymmetricMatchers;
 }
 
 interface Matchers<R> {
@@ -459,3 +463,5 @@ interface Matchers<R> {
    */
   toThrowErrorMatchingInlineSnapshot (snapshot?: string): R;
 }
+
+type Constructable=void

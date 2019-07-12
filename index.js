@@ -13,9 +13,9 @@ const JSON5 = require('json5');
 const ora = require('ora');
 const tsNode = require('ts-node');
 const tsConfigPaths = require('tsconfig-paths');
-const getStackTrace = require('get-stack-trace').getStackTrace;
 const chalk = require('chalk');
 const jsdiff = require('diff');
+const createCallsiteRecord = require('callsite-record');
 
 if (!fs.existsSync('package.json')) {
   const spinner = ora().start();
@@ -119,17 +119,7 @@ async function test(from, cmd) {
   //   },
   // }
 
-  // const mapper = {}
-  // if (from === "bin") {
-  //   mapper[packageName] = packageRoot + "/bin/index.js"
-  // }
-  // else if (from === "src") {
-  //   mapper[packageName] = packageRoot + "/src/index.ts"
-  // }
-  // else {
-  //   console.log("you can run tests from src or from bin")
-  //   return
-  // }
+  // const mapper = {}  
 
   // jestArgs.push(
   //   "--module-name-mapper", JSON.stringify(mapper)
@@ -147,6 +137,52 @@ async function test(from, cmd) {
 
   // console.dir(r)
 
+  let tsConfigPath, tsConfig, tsNodeOps, tsConfigPathsOpts
+  if (from === "bin") {
+    const paths = {
+      [packageName]: [
+        ".."
+      ]
+    }
+    tsConfigPath = packageRoot + '/tests/tsconfig.json'
+    tsProject = require(packageRoot + '/tsproject.json')
+    tsConfig = require(packageRoot + '/tests/tsconfig.json')
+    tsProject.compilerOptions.baseUrl = packageRoot + "/tests"
+    delete tsProject.compilerOptions.outDir
+    tsProject.compilerOptions.paths = paths
+    tsProject.compilerOptions.module = "commonjs"
+    tsProject.compilerOptions.allowJs = true
+    tsProject.compilerOptions.noEmit = true
+    tsProject.compilerOptions.typeRoots = [
+      packageRoot + "/../../types",
+      // packageRoot
+    ]
+    tsNodeOps = {
+      compilerOptions: tsProject.compilerOptions,
+    }
+    // console.log(JSON.stringify(tsNodeOps))
+    tsConfigPathsOpts = {
+      baseUrl: packageRoot + "/tests",
+      paths
+    }
+    // console.dir(tsConfigPathsOpts.paths)
+  }
+  else if (from === "src") {
+    tsConfigPath = packageRoot + '/tests/tsconfig.json'
+    tsConfig = require(tsConfigPath)
+    tsNodeOps = {
+      project: tsConfigPath,
+    }
+    tsConfigPathsOpts = {
+      baseUrl: packageRoot + "/tests",
+      paths: tsConfig.compilerOptions.paths
+    }
+  }
+  else {
+    console.log("you can run tests from src or from bin")
+    return
+  }
+
   const cleanup = []
   let level = []
   let test
@@ -161,24 +197,20 @@ async function test(from, cmd) {
       level = oldlevel
     }
     global.it = function (name, fn, tm) {
-      add(name, fn, tm, getStackTrace())
+      add(name, fn, tm, new Error('stack'))
     }
     global.expect = function (a) {
+      const stack = new Error('stack')
       return {
         toBe(e) {
-          if (a !== e) raiseDiff(a, e)
+          if (a !== e) raiseDiff(stack, a, e)
         }
       }
     }
-    const testTsConfig = packageRoot + '/tests/tsconfig.json'
-    tsNode.register({
-      project: testTsConfig,
-    })
-    const tsConfig = require(testTsConfig)
-    cleanup.push(tsConfigPaths.register({
-      baseUrl: packageRoot + "/tests",
-      paths: tsConfig.compilerOptions.paths
-    }));
+
+    tsNode.register(tsNodeOps)
+    debugger
+    cleanup.push(tsConfigPaths.register(tsConfigPathsOpts));
     requiredFiles()
     await runTests()
     await showFailures()
@@ -233,13 +265,12 @@ async function test(from, cmd) {
     }
   }
 
-  function raiseDiff(a, e) {
+  function raiseDiff(stack, a, e) {
     console.log('')
     fails.push({
       test,
       async show() {
-        const s = (await test.stack)[1]
-        console.log(s.fileName + ":" + s.lineNumber)
+        showErrorPos(stack)
         const fa = formatValue(a)
         const fe = formatValue(e)
         process.stderr.write(chalk.red("actual  : " + fa) + '\n')
@@ -256,6 +287,17 @@ async function test(from, cmd) {
     })
     test.failed = true
     throw new Error("diff")
+  }
+  function showErrorPos(stack) {
+    const record = createCallsiteRecord({
+      forError: stack
+      , isCallsiteFrame(frame) {
+        console.log(frame.fileName)
+        console.log(frame.fileName.indexOf("tsc-npm-bundler/index"))
+        return frame.fileName.indexOf("tsc-npm-bundler/index") === -1
+      }
+    });
+    console.log(record.renderSync())
   }
 
   function formatValue(v) {

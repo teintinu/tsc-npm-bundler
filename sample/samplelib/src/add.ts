@@ -5,6 +5,6 @@ import { arithmetic } from './arithmetic'
  * @param arr
  * @returns sum
  */
-export function add (arr: number[]) {
+export async function add (arr: number[]) {
   return arithmetic(arr, (p, a) => p + a)
 }
