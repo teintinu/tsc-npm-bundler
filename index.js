@@ -4,7 +4,7 @@ const rollup = require('rollup');
 const rollupTS = require('rollup-plugin-typescript2');
 // const babelTS = require('rollup-plugin-babel');
 // const prepackTS = require('rollup-plugin-prepack')
-const uglifyTS= require("rollup-plugin-uglify").uglify;
+const uglifyTS = require("rollup-plugin-uglify").uglify;
 // const rollupNodeResolve = require('rollup-plugin-node-resolve');
 // const rollupCJS = require('rollup-plugin-commonjs');
 
@@ -18,6 +18,7 @@ const tsConfigPaths = require('tsconfig-paths');
 const chalk = require('chalk');
 const jsdiff = require('diff');
 const createCallsiteRecord = require('callsite-record');
+const foreground = require('foreground-child')
 
 if (!fs.existsSync('package.json')) {
   const spinner = ora().start();
@@ -53,6 +54,7 @@ program
 program
   .command('test <from>')
   .description("from src | bin")
+  .option('-c, --coverage')
   .action(runcmd(test))
 
 const configurator = getConfigurator()
@@ -109,7 +111,30 @@ async function watch(cmd) {
 }
 
 async function test(from, cmd) {
-
+  if (cmd.parent.rawArgs[cmd.parent.rawArgs.length - 1] === 'nyc') {
+    require('source-map-support').install()
+  }
+  else if (cmd.coverage) {
+    const args = [
+      'nyc',
+      '--reporter=lcov',
+      '--reporter=text-summary',
+    ].concat(process.argv.slice().filter((s) => s !== '-c' && s !== '--coverage'))
+    args.push('nyc')
+    await fs.writeFile('.nycrc', JSON.stringify(
+      {
+        "extends": "@istanbuljs/nyc-config-typescript",
+        "include": [
+          "src/**"
+        ],
+        // "all": true
+      }
+    ))
+    await spawnShellCommand(null, 'npx', args)
+    await fs.unlink('.nycrc')
+    return
+    // execShellCommand(
+  }
   //   testEnvironment: 'node',
   //   coverageThreshold: {
   //     global: {
@@ -213,7 +238,7 @@ async function test(from, cmd) {
     tsNode.register(tsNodeOps)
     debugger
     cleanup.push(tsConfigPaths.register(tsConfigPathsOpts));
-    requiredFiles()
+    await requiredFiles()
     await runTests()
     await showFailures()
     if (fails.length) spinner.fail(fails.length + " test(s) failed")
@@ -233,8 +258,17 @@ async function test(from, cmd) {
     tests.push(test)
     return test
   }
-  function requiredFiles() {
-    require(packageRoot + '/tests/add.test.ts')
+  async function requiredFiles() {
+    await req(packageRoot + '/tests')
+    async function req(dir) {
+      const files = await fs.readdir(dir)
+      for (const s of files) {
+        const n = dir + '/' + s
+        const st = await fs.stat(n)
+        if (st.isDirectory()) await req(n)
+        else require(n)
+      }
+    }
   }
   async function runTests() {
     for (const t of tests) {
@@ -496,13 +530,23 @@ function getConfigurator() {
 }
 
 function execShellCommand(spinner, cmd) {
-  spinner.text = cmd
+  if (spinner) spinner.text = cmd
   const exec = require('child_process').exec;
   return new Promise((resolve, reject) => {
     exec(cmd, (error, stdout, stderr) => {
       if (error) reject(error)
       else resolve(stdout ? stdout : stderr)
     });
+  });
+}
+function spawnShellCommand(spinner, cmd, args) {
+  if (spinner) spinner.text = cmd
+  const spawn = require('child_process').spawn;
+  return new Promise((resolve, reject) => {
+    var child = foreground(cmd, args, function (done) {
+      resolve()
+      return done()
+    })
   });
 }
 
